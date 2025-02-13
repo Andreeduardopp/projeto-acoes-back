@@ -18,7 +18,7 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SECRET_KEY = 'django-insecure-u^q8#qps^j967kwl&39^%z(e+n@*t$6ewl19$7b6x=0nnh#ej('
+SECRET_KEY = config("SECRET_KEY")
 
 DEBUG = True
 
@@ -74,13 +74,13 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 CORS_ALLOW_ALL_ORIGINS = True  
 
 DATABASES = {
-    "default": dj_database_url.config(default=os.getenv("DATABASE_URL", "sqlite:///db.sqlite3"))
+    "default": dj_database_url.config("DATABASE_URL", default="sqlite:///db.sqlite3")
 }
 
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
+        "LOCATION": config("REDIS_URL", default = "redis://127.0.0.1:6379/1"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
