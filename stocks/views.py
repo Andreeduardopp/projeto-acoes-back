@@ -1,31 +1,37 @@
+import yfinance as yf
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from backend.settings import API_KEY
-import requests
+from django.core.cache import cache
 
+@api_view(["GET"])
+def get_stock_prices(request):
+    """Fetch stock prices with a custom time range using Yahoo Finance"""
 
-@api_view(['GET'])
-def get_stock_prices(request, ticker=None):
-    """Fetch historical stock prices"""
-
-    # Get ticker from query params if not provided in the URL
-    if not ticker:
-        ticker = request.GET.get("ticker", None)
+    ticker = request.GET.get("ticker", None)
+    start_date = request.GET.get("start_date", None)
+    end_date = request.GET.get("end_date", None)
 
     if not ticker:
         return Response({"error": "Missing ticker parameter"}, status=400)
 
-    url = f"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={ticker}&apikey={API_KEY}"
-    response = requests.get(url).json()
+    if not start_date or not end_date:
+        return Response({"error": "Missing start_date or end_date"}, status=400)
+    
+    cache_key = f"stock_{ticker}_{start_date}_{end_date}"
+    cached_data = cache.get(cache_key)
 
-    time_series = response.get("Time Series (Daily)", {})
+    if cached_data:
+        print("Returning cached data")
+        return Response(cached_data)
+    
+    stock = yf.Ticker(ticker)
+    hist = stock.history(start=start_date, end=end_date)
 
-    if not time_series:
-        return Response({"error": "Invalid ticker or no data found"}, status=400)
+    if hist.empty:
+        return Response({"error": "No data found for this ticker"}, status=404)
 
-    data = [
-        {"date": date, "price": float(info["4. close"])}
-        for date, info in time_series.items()
-    ]
+    data = [{"date": str(date.date()), "price": round(price, 2)} for date, price in hist["Close"].items()]
+    response_data = {"ticker": ticker, "data": data}
+    cache.set(cache_key, response_data, timeout=60 * 60) 
 
     return Response({"ticker": ticker, "data": data})
