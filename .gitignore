@@ -2,8 +2,6 @@
 venv/
 .env
 *.venv
-Pipfile
-Pipfile.lock
 
 # Python files
 *.pyc
